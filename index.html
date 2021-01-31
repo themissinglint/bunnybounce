@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+
+<html>
+   <head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser-arcade-physics.min.js"></script>
+	<script>
+	// Let us open a web socket
+   var ws = new WebSocket("ws://[2602:61:7460:ed00:4fe:d88e:328d:fa3f]:4000");
+			   
+    var config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 300 }
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+			update: update
+        }
+    };
+
+    var game = new Phaser.Game(config);
+	var bunny;
+	
+	function update (){
+		if(bunny.body.velocity.x < 0){
+			bunny.flipX = true;
+		}else{
+			bunny.flipX = false;
+		}
+	}
+
+    function preload ()
+    {
+        //this.load.setBaseURL('http://labs.phaser.io');
+
+        this.load.image('logo', 'bunny.png');
+        this.load.image('bg', 'bg.png');
+    }
+
+    function create ()
+    {
+        this.add.image(400, 300, 'bg');
+
+
+        bunny = this.physics.add.image(75, 75, 'logo');
+		
+		bunny.setInteractive();
+		//bunny.body = new Phaser.Physics.Arcade.Body(this.physics.world, bunny)
+		this.input.on('gameobjectdown', bounceIt, this);
+		//bunny.on('pointerdown', bounceIt)
+        bunny.setVelocity(100, 100);
+        bunny.setBounce(.2, .2);
+        bunny.setFriction(.99, .99);
+        bunny.setCollideWorldBounds(true);
+    }
+	
+	function bounceIt(pointer, object)
+	{
+		console.log('pointer down on bunny');
+		console.log(object);
+		//object.setVelocity(-object.body.velocity.x, -object.body.velocity.y);
+		var dx = 100;
+		if (bunny.flipX){
+			dx = -100;
+		}
+		var msg = `bunny,${object.x},${object.y},${dx},${-400}`;
+		console.log("sending:" + msg)
+		ws.send(msg);
+	}
+	
+	
+	ws.onmessage = function (evt) { 
+		var data = evt.data.split(",");
+		console.log(data);
+		if(data[0] == "bunny" && data.length >= 5){
+			bunny.x = parseInt(data[1]);
+			bunny.y = parseInt(data[2]);
+			bunny.setVelocity(parseInt(data[3]),parseInt(data[4]));
+		}
+	};
+    </script>		
+   </head>
+   
+   <body>
+      
+   </body>
+</html>
